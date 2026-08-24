@@ -2,7 +2,7 @@
   "name": "Loop — Daily Facts & Challenges",
   "short_name": "Loop",
   "description": "One fact, one quote, and four quick challenges. New every day.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
