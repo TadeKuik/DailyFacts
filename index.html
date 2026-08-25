@@ -38,6 +38,13 @@
         <div class="time-display" id="liveTime">--:--</div>
       </div>
       <p class="date-label" id="dateLabel">Loading…</p>
+
+      <button class="streak-pill" id="streakPill" type="button">
+        <span class="streak-flame">🔥</span>
+        <span id="streakCount">0</span>
+        <span class="streak-label">day streak</span>
+      </button>
+
       <p class="reminder-banner" id="reminderBanner" hidden>You still have challenges waiting today</p>
     </div>
 
@@ -53,7 +60,7 @@
     </section>
 
     <button class="progress-pill" id="progressPill" type="button">
-      <span id="progressText">0/4 challenges done today</span>
+      <span id="progressText">0/7 challenges done today</span>
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3L11 8L6 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </main>
@@ -75,6 +82,30 @@
   <!-- SETTINGS -->
   <main class="view" id="view-settings" data-view="settings">
     <h1 class="view-title">Settings</h1>
+
+    <div class="settings-group" id="accountGroup">
+      <span class="settings-group-label">Account</span>
+      <div class="settings-row">
+        <div class="settings-row-text">
+          <span class="settings-row-title" id="accountStatusTitle">Not signed in</span>
+          <span class="settings-row-sub" id="accountStatusSub">Sign in to save your progress across devices.</span>
+        </div>
+        <button class="pill-btn" id="signOutBtn" type="button" hidden>Sign out</button>
+      </div>
+
+      <div id="signedOutBlock" class="auth-block">
+        <button class="ov-btn" id="googleSignInBtn" type="button" hidden>Continue with Google</button>
+        <div class="auth-divider" id="authDivider" hidden><span>or</span></div>
+        <input class="ov-input" id="authEmail" type="email" placeholder="Email" autocomplete="email" hidden>
+        <input class="ov-input" id="authPassword" type="password" placeholder="Password" autocomplete="current-password" hidden>
+        <div class="auth-btn-row" id="authBtnRow" hidden>
+          <button class="pill-btn" id="emailSignInBtn" type="button">Sign in</button>
+          <button class="pill-btn" id="emailSignUpBtn" type="button">Create account</button>
+        </div>
+        <p class="auth-error" id="authError" hidden></p>
+        <p class="about-text" id="cloudSyncNote" hidden>Cloud sync isn't configured yet — progress stays on this device only.</p>
+      </div>
+    </div>
 
     <div class="settings-group">
       <span class="settings-group-label">Appearance</span>
@@ -102,6 +133,17 @@
     </div>
 
     <div class="settings-group">
+      <span class="settings-group-label">Progress</span>
+      <div class="settings-row">
+        <div class="settings-row-text">
+          <span class="settings-row-title">Stats &amp; badges</span>
+          <span class="settings-row-sub">Streak, personal records and achievements.</span>
+        </div>
+        <button class="pill-btn" id="statsBtn" type="button">View</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
       <span class="settings-group-label">Install</span>
       <div class="settings-row">
         <div class="settings-row-text">
@@ -117,7 +159,7 @@
       <div class="settings-row">
         <div class="settings-row-text">
           <span class="settings-row-title">Reset progress</span>
-          <span class="settings-row-sub">Clears today's completions and every personal record.</span>
+          <span class="settings-row-sub">Clears today's completions, streak, and every personal record.</span>
         </div>
         <button class="pill-btn pill-btn-danger" id="resetBtn" type="button">Reset</button>
       </div>
@@ -125,8 +167,8 @@
 
     <div class="settings-group">
       <span class="settings-group-label">About</span>
-      <p class="about-text">Loop gives you one fact, one quote, and four quick daily challenges. Everything resets at midnight, nothing is ever stored beyond this device.</p>
-      <p class="about-version">Loop · v1.0</p>
+      <p class="about-text">Loop gives you one fact, one quote, and seven quick daily challenges. Everything resets at midnight. Sign in to keep your progress across devices, or skip it and it just stays on this one.</p>
+      <p class="about-version">Loop · v2.0</p>
     </div>
   </main>
 
@@ -151,7 +193,7 @@
   </nav>
 </div>
 
-<!-- TOOL OVERLAY -->
+<!-- TOOL / STATS OVERLAY -->
 <div class="overlay" id="toolOverlay">
   <div class="overlay-sheet">
     <button class="overlay-close" id="overlayClose" type="button" aria-label="Close">✕</button>
