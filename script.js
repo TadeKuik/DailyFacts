@@ -1,8 +1,8 @@
 /* ==========================================================================
    Loop — app logic
-   Everything is deterministic per calendar day (local time), so content
-   is stable for the whole day and identical for every visitor on that day.
-   Tool completions/PRs are stored per-device in localStorage.
+   Content is deterministic per calendar day (local time). Tool completions,
+   PRs, and streaks are stored in localStorage, and mirrored to Firestore
+   when the user is signed in (see the Firebase section near the bottom).
    ========================================================================== */
 
 (function () {
@@ -165,52 +165,52 @@
   ];
 
   const CAPITALS = [
-    { c: "Netherlands", cap: "Amsterdam" },
-    { c: "Belgium", cap: "Brussels" },
-    { c: "Germany", cap: "Berlin" },
-    { c: "France", cap: "Paris" },
-    { c: "Portugal", cap: "Lisbon" },
-    { c: "Norway", cap: "Oslo" },
-    { c: "Sweden", cap: "Stockholm" },
-    { c: "Finland", cap: "Helsinki" },
-    { c: "Iceland", cap: "Reykjavik" },
-    { c: "Poland", cap: "Warsaw" },
-    { c: "Austria", cap: "Vienna" },
-    { c: "Switzerland", cap: "Bern" },
-    { c: "Ireland", cap: "Dublin" },
-    { c: "Greece", cap: "Athens" },
-    { c: "Turkey", cap: "Ankara" },
-    { c: "Egypt", cap: "Cairo" },
-    { c: "Morocco", cap: "Rabat" },
-    { c: "Kenya", cap: "Nairobi" },
-    { c: "South Africa", cap: "Pretoria" },
-    { c: "Nigeria", cap: "Abuja" },
-    { c: "Brazil", cap: "Brasilia" },
-    { c: "Argentina", cap: "Buenos Aires" },
-    { c: "Chile", cap: "Santiago" },
-    { c: "Peru", cap: "Lima" },
-    { c: "Colombia", cap: "Bogota" },
-    { c: "Mexico", cap: "Mexico City" },
-    { c: "Canada", cap: "Ottawa" },
-    { c: "United States", cap: "Washington" },
-    { c: "Japan", cap: "Tokyo" },
-    { c: "South Korea", cap: "Seoul" },
-    { c: "China", cap: "Beijing" },
-    { c: "India", cap: "New Delhi" },
-    { c: "Thailand", cap: "Bangkok" },
-    { c: "Vietnam", cap: "Hanoi" },
-    { c: "Indonesia", cap: "Jakarta" },
-    { c: "Australia", cap: "Canberra" },
-    { c: "New Zealand", cap: "Wellington" },
-    { c: "Denmark", cap: "Copenhagen" },
-    { c: "Czech Republic", cap: "Prague" },
-    { c: "Hungary", cap: "Budapest" },
-    { c: "Romania", cap: "Bucharest" },
-    { c: "Ukraine", cap: "Kyiv" },
-    { c: "Croatia", cap: "Zagreb" },
-    { c: "Spain", cap: "Madrid" },
-    { c: "Italy", cap: "Rome" },
-    { c: "Israel", cap: "Jerusalem" }
+    { c: "Netherlands", cap: "Amsterdam", flag: "🇳🇱" },
+    { c: "Belgium", cap: "Brussels", flag: "🇧🇪" },
+    { c: "Germany", cap: "Berlin", flag: "🇩🇪" },
+    { c: "France", cap: "Paris", flag: "🇫🇷" },
+    { c: "Portugal", cap: "Lisbon", flag: "🇵🇹" },
+    { c: "Norway", cap: "Oslo", flag: "🇳🇴" },
+    { c: "Sweden", cap: "Stockholm", flag: "🇸🇪" },
+    { c: "Finland", cap: "Helsinki", flag: "🇫🇮" },
+    { c: "Iceland", cap: "Reykjavik", flag: "🇮🇸" },
+    { c: "Poland", cap: "Warsaw", flag: "🇵🇱" },
+    { c: "Austria", cap: "Vienna", flag: "🇦🇹" },
+    { c: "Switzerland", cap: "Bern", flag: "🇨🇭" },
+    { c: "Ireland", cap: "Dublin", flag: "🇮🇪" },
+    { c: "Greece", cap: "Athens", flag: "🇬🇷" },
+    { c: "Turkey", cap: "Ankara", flag: "🇹🇷" },
+    { c: "Egypt", cap: "Cairo", flag: "🇪🇬" },
+    { c: "Morocco", cap: "Rabat", flag: "🇲🇦" },
+    { c: "Kenya", cap: "Nairobi", flag: "🇰🇪" },
+    { c: "South Africa", cap: "Pretoria", flag: "🇿🇦" },
+    { c: "Nigeria", cap: "Abuja", flag: "🇳🇬" },
+    { c: "Brazil", cap: "Brasilia", flag: "🇧🇷" },
+    { c: "Argentina", cap: "Buenos Aires", flag: "🇦🇷" },
+    { c: "Chile", cap: "Santiago", flag: "🇨🇱" },
+    { c: "Peru", cap: "Lima", flag: "🇵🇪" },
+    { c: "Colombia", cap: "Bogota", flag: "🇨🇴" },
+    { c: "Mexico", cap: "Mexico City", flag: "🇲🇽" },
+    { c: "Canada", cap: "Ottawa", flag: "🇨🇦" },
+    { c: "United States", cap: "Washington", flag: "🇺🇸" },
+    { c: "Japan", cap: "Tokyo", flag: "🇯🇵" },
+    { c: "South Korea", cap: "Seoul", flag: "🇰🇷" },
+    { c: "China", cap: "Beijing", flag: "🇨🇳" },
+    { c: "India", cap: "New Delhi", flag: "🇮🇳" },
+    { c: "Thailand", cap: "Bangkok", flag: "🇹🇭" },
+    { c: "Vietnam", cap: "Hanoi", flag: "🇻🇳" },
+    { c: "Indonesia", cap: "Jakarta", flag: "🇮🇩" },
+    { c: "Australia", cap: "Canberra", flag: "🇦🇺" },
+    { c: "New Zealand", cap: "Wellington", flag: "🇳🇿" },
+    { c: "Denmark", cap: "Copenhagen", flag: "🇩🇰" },
+    { c: "Czech Republic", cap: "Prague", flag: "🇨🇿" },
+    { c: "Hungary", cap: "Budapest", flag: "🇭🇺" },
+    { c: "Romania", cap: "Bucharest", flag: "🇷🇴" },
+    { c: "Ukraine", cap: "Kyiv", flag: "🇺🇦" },
+    { c: "Croatia", cap: "Zagreb", flag: "🇭🇷" },
+    { c: "Spain", cap: "Madrid", flag: "🇪🇸" },
+    { c: "Italy", cap: "Rome", flag: "🇮🇹" },
+    { c: "Israel", cap: "Jerusalem", flag: "🇮🇱" }
   ];
 
   /* ---------------------------------------------------------------------
@@ -239,6 +239,11 @@
     return Math.abs(h);
   }
 
+  function seededInt(label, min, max) {
+    const h = hashString(todayKey + ":" + label);
+    return min + (h % (max - min + 1));
+  }
+
   const today = new Date();
   const doy = dayOfYear(today);
   const todayKey = dateKey(today);
@@ -264,9 +269,6 @@
   function isDoneToday(toolId) {
     return store.get(`loop_done_${toolId}`, null) === todayKey;
   }
-  function markDoneToday(toolId) {
-    store.set(`loop_done_${toolId}`, todayKey);
-  }
   function getPR(toolId) {
     return store.get(`loop_pr_${toolId}`, null);
   }
@@ -280,6 +282,49 @@
   }
   function formatMs(ms) {
     return (ms / 1000).toFixed(1) + "s";
+  }
+
+  /* ---------------------------------------------------------------------
+     Streak
+     --------------------------------------------------------------------- */
+
+  function yesterdayKey() {
+    return dateKey(new Date(Date.now() - 86400000));
+  }
+
+  function recalcStreakOnLoad() {
+    const last = store.get("loop_streak_last_date", null);
+    if (!last) return;
+    if (last !== todayKey && last !== yesterdayKey()) {
+      store.set("loop_streak_current", 0);
+    }
+  }
+
+  function maybeBumpStreak() {
+    const allDone = TOOL_DEFS.every(t => isDoneToday(t.id));
+    if (!allDone) { renderStreakBadge(); return; }
+    const last = store.get("loop_streak_last_date", null);
+    if (last === todayKey) { renderStreakBadge(); return; }
+    const current = (last === yesterdayKey()) ? store.get("loop_streak_current", 0) + 1 : 1;
+    store.set("loop_streak_current", current);
+    store.set("loop_streak_last_date", todayKey);
+    const longest = store.get("loop_streak_longest", 0);
+    if (current > longest) store.set("loop_streak_longest", current);
+    renderStreakBadge();
+  }
+
+  function renderStreakBadge() {
+    const el = document.getElementById("streakCount");
+    if (el) el.textContent = store.get("loop_streak_current", 0);
+  }
+
+  function markDoneToday(toolId) {
+    const wasDone = isDoneToday(toolId);
+    store.set(`loop_done_${toolId}`, todayKey);
+    if (!wasDone) {
+      store.set("loop_total_completed", store.get("loop_total_completed", 0) + 1);
+    }
+    maybeBumpStreak();
   }
 
   /* ---------------------------------------------------------------------
@@ -304,6 +349,7 @@
       if (!btn) return;
       store.set("loop_theme", btn.dataset.theme);
       applyTheme(btn.dataset.theme);
+      syncNow();
     });
   }
 
@@ -314,7 +360,7 @@
   function showView(name) {
     document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.dataset.view === name));
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === name));
-    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    window.scrollTo({ top: 0 });
   }
 
   function initNav() {
@@ -325,7 +371,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Live clock + day-progress ring (signature element)
+     Live clock + day-progress ring
      --------------------------------------------------------------------- */
 
   const RING_CIRCUMFERENCE = 2 * Math.PI * 92;
@@ -368,7 +414,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Facts view — this week only, no looking ahead
+     Facts view
      --------------------------------------------------------------------- */
 
   function renderFacts() {
@@ -409,13 +455,6 @@
      Tools view
      --------------------------------------------------------------------- */
 
-  const TOOL_DEFS = [
-    { id: "word", title: "English", sub: "Learn one tricky word a day", icon: iconBook, timed: false },
-    { id: "clock", title: "Analog Clock", sub: "Read the hands, type the time", icon: iconClock, timed: true },
-    { id: "month", title: "Months", sub: "Number to month, as fast as you can", icon: iconCalendar, timed: true },
-    { id: "capital", title: "Capitals", sub: "Country to capital city", icon: iconGlobe, timed: true }
-  ];
-
   function iconBook() {
     return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M5 5.5C5 4.67 5.67 4 6.5 4H12v16H6.5A1.5 1.5 0 0 1 5 18.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M19 5.5c0-.83-.67-1.5-1.5-1.5H12v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
   }
@@ -428,6 +467,25 @@
   function iconGlobe() {
     return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M3.7 12h16.6M12 3.7c2.4 2.2 3.7 5.1 3.7 8.3s-1.3 6.1-3.7 8.3c-2.4-2.2-3.7-5.1-3.7-8.3S9.6 5.9 12 3.7Z" stroke="currentColor" stroke-width="1.6"/></svg>`;
   }
+  function iconFlag() {
+    return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M6 21V4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6 4.5c2-1.3 4-1.3 6 0s4 1.3 6 0v8c-2 1.3-4 1.3-6 0s-4-1.3-6 0v-8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  }
+  function iconMath() {
+    return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><rect x="5" y="3.5" width="14" height="17" rx="2" stroke="currentColor" stroke-width="1.6"/><line x1="7.5" y1="8" x2="16.5" y2="8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12.2" r="1" fill="currentColor"/><circle cx="12" cy="12.2" r="1" fill="currentColor"/><circle cx="16" cy="12.2" r="1" fill="currentColor"/><circle cx="8" cy="16.2" r="1" fill="currentColor"/><circle cx="12" cy="16.2" r="1" fill="currentColor"/><circle cx="16" cy="16.2" r="1" fill="currentColor"/></svg>`;
+  }
+  function iconRoman() {
+    return `<svg viewBox="0 0 24 24" width="20" height="20"><text x="12" y="16" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10.5" font-weight="700" fill="currentColor">XII</text></svg>`;
+  }
+
+  const TOOL_DEFS = [
+    { id: "word", title: "English", sub: "Learn one tricky word a day", icon: iconBook, timed: false, hue: 215 },
+    { id: "clock", title: "Analog Clock", sub: "Read the hands, type the time", icon: iconClock, timed: true, hue: 178 },
+    { id: "month", title: "Months", sub: "Number to month, as fast as you can", icon: iconCalendar, timed: true, hue: 288 },
+    { id: "capital", title: "Capitals", sub: "Country to capital city", icon: iconGlobe, timed: true, hue: 28 },
+    { id: "flag", title: "Flags", sub: "Flag to country name", icon: iconFlag, timed: true, hue: 6 },
+    { id: "math", title: "Math Sprint", sub: "Solve it as fast as you can", icon: iconMath, timed: true, hue: 40 },
+    { id: "roman", title: "Roman Numerals", sub: "Numeral to number", icon: iconRoman, timed: true, hue: 250 }
+  ];
 
   function renderTools() {
     const list = document.getElementById("toolsList");
@@ -438,6 +496,7 @@
       const row = document.createElement("button");
       row.className = "tool-row";
       row.type = "button";
+      row.style.setProperty("--tool-hue", def.hue);
       const statusHtml = done
         ? `<span class="tool-status done">Done ✓</span>`
         : `<span class="tool-status pending">New</span>`;
@@ -472,14 +531,14 @@
   overlay.addEventListener("click", (e) => { if (e.target === overlay) closeOverlay(); });
 
   function openTool(id) {
-    if (isDoneToday(id)) {
-      renderDoneState(id);
-      return;
-    }
+    if (isDoneToday(id)) { renderDoneState(id); return; }
     if (id === "word") renderWordTool();
     else if (id === "clock") renderClockTool();
     else if (id === "month") renderMonthTool();
     else if (id === "capital") renderCapitalTool();
+    else if (id === "flag") renderFlagTool();
+    else if (id === "math") renderMathTool();
+    else if (id === "roman") renderRomanTool();
   }
 
   function renderDoneState(id) {
@@ -496,7 +555,7 @@
     `);
   }
 
-  /* --- Tool 1: English word -------------------------------------------- */
+  /* --- Tool: English word -------------------------------------------- */
 
   function renderWordTool() {
     const word = WORDS[doy % WORDS.length];
@@ -534,10 +593,11 @@
       renderTools();
       updateProgressPill();
       renderDoneState("word");
+      syncNow();
     }
   }
 
-  /* --- Tool 2: Analog clock ---------------------------------------------- */
+  /* --- Tool: Analog clock ---------------------------------------------- */
 
   function renderClockTool() {
     const hour = seed % 12;
@@ -554,7 +614,7 @@
     `);
 
     document.getElementById("clockSubmitBtn").addEventListener("click", () => {
-      const val = document.getElementById("clockInput").value; // "HH:MM"
+      const val = document.getElementById("clockInput").value;
       if (!val) return;
       const elapsed = performance.now() - startedAt;
       const [gh, gm] = val.split(":").map(Number);
@@ -592,13 +652,13 @@
       </svg>`;
   }
 
-  /* --- Tool 3: Months ------------------------------------------------- */
+  /* --- Tool: Months ------------------------------------------------- */
 
   const MONTHS = ["january","february","march","april","may","june","july","august","september","october","november","december"];
   const MONTH_ABBR = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
 
   function renderMonthTool() {
-    const monthIndex = seed % 12; // 0-11
+    const monthIndex = seed % 12;
     const number = monthIndex + 1;
     const startedAt = performance.now();
 
@@ -625,7 +685,7 @@
     }
   }
 
-  /* --- Tool 4: Capitals ------------------------------------------------- */
+  /* --- Tool: Capitals ------------------------------------------------- */
 
   function renderCapitalTool() {
     const item = CAPITALS[doy % CAPITALS.length];
@@ -654,6 +714,110 @@
     }
   }
 
+  /* --- Tool: Flags ------------------------------------------------------ */
+
+  function renderFlagTool() {
+    const item = CAPITALS[doy % CAPITALS.length];
+    const startedAt = performance.now();
+
+    openOverlay(`
+      <span class="ov-eyebrow">Flags</span>
+      <h2 class="ov-title">Name the country</h2>
+      <p class="ov-sub">Type the country this flag belongs to.</p>
+      <div class="ov-big-word" style="font-size:64px;">${item.flag}</div>
+      <input class="ov-input" id="flagInput" type="text" placeholder="Country" autocomplete="off" autocapitalize="off" style="margin-top:22px;">
+      <button class="ov-btn" id="flagSubmitBtn">Submit</button>
+    `);
+
+    const input = document.getElementById("flagInput");
+    input.focus();
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    document.getElementById("flagSubmitBtn").addEventListener("click", submit);
+
+    function submit() {
+      const val = input.value.trim().toLowerCase();
+      if (!val) return;
+      const elapsed = performance.now() - startedAt;
+      const correct = val === item.c.toLowerCase();
+      finishTimedTool("flag", correct, elapsed, item.c);
+    }
+  }
+
+  /* --- Tool: Math Sprint -------------------------------------------------- */
+
+  function getMathProblem() {
+    const opIdx = seededInt("math-op", 0, 2);
+    let a, b, symbol, answer;
+    if (opIdx === 0) { a = seededInt("math-a", 10, 89); b = seededInt("math-b", 10, 89); symbol = "+"; answer = a + b; }
+    else if (opIdx === 1) { a = seededInt("math-a", 30, 99); b = seededInt("math-b", 1, 29); symbol = "−"; answer = a - b; }
+    else { a = seededInt("math-a", 2, 12); b = seededInt("math-b", 2, 12); symbol = "×"; answer = a * b; }
+    return { a, b, symbol, answer };
+  }
+
+  function renderMathTool() {
+    const p = getMathProblem();
+    const startedAt = performance.now();
+
+    openOverlay(`
+      <span class="ov-eyebrow">Math Sprint</span>
+      <h2 class="ov-title">Solve it</h2>
+      <p class="ov-sub">Type the answer as fast as you can.</p>
+      <div class="ov-big-number">${p.a} ${p.symbol} ${p.b}</div>
+      <input class="ov-input" id="mathInput" type="text" inputmode="numeric" placeholder="Answer" autocomplete="off">
+      <button class="ov-btn" id="mathSubmitBtn">Submit</button>
+    `);
+
+    const input = document.getElementById("mathInput");
+    input.focus();
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    document.getElementById("mathSubmitBtn").addEventListener("click", submit);
+
+    function submit() {
+      const val = input.value.trim();
+      if (!val) return;
+      const elapsed = performance.now() - startedAt;
+      const correct = parseInt(val, 10) === p.answer;
+      finishTimedTool("math", correct, elapsed, String(p.answer));
+    }
+  }
+
+  /* --- Tool: Roman Numerals (numeral shown, type the number) ------------- */
+
+  const ROMAN_PAIRS = [[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];
+  function toRoman(num) {
+    let res = "";
+    for (const [v, s] of ROMAN_PAIRS) { while (num >= v) { res += s; num -= v; } }
+    return res;
+  }
+
+  function renderRomanTool() {
+    const number = seededInt("roman", 1, 99);
+    const numeral = toRoman(number);
+    const startedAt = performance.now();
+
+    openOverlay(`
+      <span class="ov-eyebrow">Roman Numerals</span>
+      <h2 class="ov-title">What number is this?</h2>
+      <p class="ov-sub">Type the number this Roman numeral represents.</p>
+      <div class="ov-big-number" style="font-family:var(--font-display); font-size:52px;">${numeral}</div>
+      <input class="ov-input" id="romanInput" type="text" inputmode="numeric" placeholder="e.g. 47" autocomplete="off">
+      <button class="ov-btn" id="romanSubmitBtn">Submit</button>
+    `);
+
+    const input = document.getElementById("romanInput");
+    input.focus();
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    document.getElementById("romanSubmitBtn").addEventListener("click", submit);
+
+    function submit() {
+      const val = input.value.trim();
+      if (!val) return;
+      const elapsed = performance.now() - startedAt;
+      const correct = parseInt(val, 10) === number;
+      finishTimedTool("roman", correct, elapsed, String(number));
+    }
+  }
+
   /* --- Shared result screen for timed tools ------------------------------ */
 
   function finishTimedTool(id, correct, elapsedMs, correctAnswerLabel) {
@@ -676,6 +840,7 @@
     `);
     renderTools();
     updateProgressPill();
+    syncNow();
   }
 
   function checkIconSVG() {
@@ -687,7 +852,59 @@
   function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
   /* ---------------------------------------------------------------------
-     Settings
+     Stats & badges
+     --------------------------------------------------------------------- */
+
+  const BADGES = [
+    { id: "first", emoji: "🌱", name: "First Steps", desc: "Complete your first challenge", check: s => s.total >= 1 },
+    { id: "week", emoji: "🔥", name: "Week Warrior", desc: "Reach a 7-day streak", check: s => s.longest >= 7 },
+    { id: "month", emoji: "🏆", name: "Habit Formed", desc: "Reach a 30-day streak", check: s => s.longest >= 30 },
+    { id: "century", emoji: "💯", name: "Centurion", desc: "Reach a 100-day streak", check: s => s.longest >= 100 },
+    { id: "quarter", emoji: "⭐", name: "Quarter Century", desc: "Complete 25 challenges total", check: s => s.total >= 25 },
+    { id: "hundred", emoji: "🎖️", name: "Century Club", desc: "Complete 100 challenges total", check: s => s.total >= 100 },
+    { id: "fast", emoji: "⚡", name: "Lightning Fast", desc: "Score a PR under 2 seconds", check: s => s.anyFastPR }
+  ];
+
+  function computeStats() {
+    return {
+      current: store.get("loop_streak_current", 0),
+      longest: store.get("loop_streak_longest", 0),
+      total: store.get("loop_total_completed", 0),
+      anyFastPR: TOOL_DEFS.some(t => { const pr = getPR(t.id); return pr !== null && pr < 2000; })
+    };
+  }
+
+  function openStats() {
+    const s = computeStats();
+    const prRows = TOOL_DEFS.filter(t => t.timed).map(t => {
+      const pr = getPR(t.id);
+      return `<div class="pr-row"><span>${t.title}</span><span>${pr !== null ? formatMs(pr) : "—"}</span></div>`;
+    }).join("");
+    const badgeItems = BADGES.map(b => {
+      const unlocked = b.check(s);
+      return `<div class="badge-item ${unlocked ? "" : "locked"}" title="${b.desc}">
+        <span class="badge-emoji">${b.emoji}</span>
+        <span class="badge-name">${b.name}</span>
+      </div>`;
+    }).join("");
+
+    openOverlay(`
+      <span class="ov-eyebrow">Progress</span>
+      <h2 class="ov-title">Stats &amp; badges</h2>
+      <div class="stats-block-row">
+        <div class="stats-metric"><div class="stats-metric-value">${s.current}</div><div class="stats-metric-label">Current streak</div></div>
+        <div class="stats-metric"><div class="stats-metric-value">${s.longest}</div><div class="stats-metric-label">Longest streak</div></div>
+        <div class="stats-metric"><div class="stats-metric-value">${s.total}</div><div class="stats-metric-label">Total completed</div></div>
+      </div>
+      <span class="ov-block-label" style="display:block; margin-bottom:8px;">Personal records</span>
+      <div class="pr-list">${prRows}</div>
+      <span class="ov-block-label" style="display:block; margin:20px 0 8px;">Badges</span>
+      <div class="badges-grid">${badgeItems}</div>
+    `);
+  }
+
+  /* ---------------------------------------------------------------------
+     Settings (non-account)
      --------------------------------------------------------------------- */
 
   function initSettings() {
@@ -701,21 +918,29 @@
       reminderSwitch.setAttribute("aria-checked", String(next));
       store.set("loop_reminder", next);
       renderHome();
+      syncNow();
     });
 
     document.getElementById("resetBtn").addEventListener("click", () => {
-      const ok = confirm("Reset all progress and personal records? This can't be undone.");
+      const ok = confirm("Reset all progress, streak, and personal records? This can't be undone.");
       if (!ok) return;
       TOOL_DEFS.forEach(def => {
         store.remove(`loop_done_${def.id}`);
         store.remove(`loop_pr_${def.id}`);
       });
+      store.remove("loop_streak_current");
+      store.remove("loop_streak_longest");
+      store.remove("loop_streak_last_date");
+      store.remove("loop_total_completed");
       renderTools();
       renderHome();
+      renderStreakBadge();
+      syncNow();
     });
 
-    // Install prompt (Android/desktop Chrome). iOS has no install event —
-    // the hint text covers that path instead.
+    document.getElementById("streakPill").addEventListener("click", openStats);
+    document.getElementById("statsBtn").addEventListener("click", openStats);
+
     const installBtn = document.getElementById("installBtn");
     const installHint = document.getElementById("installHint");
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -744,6 +969,168 @@
   }
 
   /* ---------------------------------------------------------------------
+     Firebase — auth + cloud sync (optional; app works fully without it)
+     --------------------------------------------------------------------- */
+
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBDIneVHhnYBwA5cbLXUKNe8DUsODaobco",
+    authDomain: "loop-38c98.firebaseapp.com",
+    projectId: "loop-38c98",
+    storageBucket: "loop-38c98.firebasestorage.app",
+    messagingSenderId: "500963679677",
+    appId: "1:500963679677:web:3ea2c45ab6fc5b3509c6d4"
+  };
+
+  let fbAuth = null, fbDb = null, fbUser = null, firebaseOK = false;
+  let authFns = {}, fsFns = {};
+
+  const SYNC_FIXED_KEYS = ["loop_theme", "loop_reminder", "loop_streak_current", "loop_streak_longest", "loop_streak_last_date", "loop_total_completed"];
+
+  function collectSyncData() {
+    const data = {};
+    SYNC_FIXED_KEYS.forEach(k => { data[k] = store.get(k, null); });
+    TOOL_DEFS.forEach(t => {
+      data[`loop_done_${t.id}`] = store.get(`loop_done_${t.id}`, null);
+      data[`loop_pr_${t.id}`] = store.get(`loop_pr_${t.id}`, null);
+    });
+    return data;
+  }
+
+  function applySyncData(data) {
+    Object.keys(data).forEach(k => {
+      if (data[k] !== null && data[k] !== undefined) store.set(k, data[k]);
+    });
+  }
+
+  async function pushToCloud() {
+    if (!firebaseOK || !fbUser) return;
+    try { await fsFns.setDoc(fsFns.doc(fbDb, "users", fbUser.uid), collectSyncData()); }
+    catch (e) { console.warn("Cloud save failed:", e); }
+  }
+
+  async function pullFromCloud() {
+    if (!firebaseOK || !fbUser) return;
+    try {
+      const snap = await fsFns.getDoc(fsFns.doc(fbDb, "users", fbUser.uid));
+      if (snap.exists()) applySyncData(snap.data());
+      else await pushToCloud();
+    } catch (e) { console.warn("Cloud load failed:", e); }
+  }
+
+  function syncNow() { if (firebaseOK && fbUser) pushToCloud(); }
+
+  function showAuthError(msg) {
+    const el = document.getElementById("authError");
+    el.textContent = msg;
+    el.hidden = false;
+  }
+  function clearAuthError() {
+    const el = document.getElementById("authError");
+    el.hidden = true;
+    el.textContent = "";
+  }
+
+  function friendlyAuthError(e) {
+    const code = (e && e.code) || "";
+    if (code.includes("wrong-password") || code.includes("invalid-credential")) return "Incorrect email or password.";
+    if (code.includes("user-not-found")) return "No account found with that email.";
+    if (code.includes("email-already-in-use")) return "That email is already registered — try signing in instead.";
+    if (code.includes("invalid-email")) return "That doesn't look like a valid email.";
+    if (code.includes("weak-password")) return "Password must be at least 6 characters.";
+    if (code.includes("popup-closed-by-user")) return "Sign-in was cancelled.";
+    return "Something went wrong. Please try again.";
+  }
+
+  function wireAuthUI() {
+    document.getElementById("googleSignInBtn").hidden = false;
+    document.getElementById("authDivider").hidden = false;
+    document.getElementById("authEmail").hidden = false;
+    document.getElementById("authPassword").hidden = false;
+    document.getElementById("authBtnRow").hidden = false;
+
+    document.getElementById("googleSignInBtn").addEventListener("click", async () => {
+      clearAuthError();
+      try {
+        const provider = new authFns.GoogleAuthProvider();
+        await authFns.signInWithPopup(fbAuth, provider);
+      } catch (e) { showAuthError(friendlyAuthError(e)); }
+    });
+
+    document.getElementById("emailSignInBtn").addEventListener("click", async () => {
+      clearAuthError();
+      const email = document.getElementById("authEmail").value.trim();
+      const pass = document.getElementById("authPassword").value;
+      if (!email || !pass) { showAuthError("Enter your email and password."); return; }
+      try { await authFns.signInWithEmailAndPassword(fbAuth, email, pass); }
+      catch (e) { showAuthError(friendlyAuthError(e)); }
+    });
+
+    document.getElementById("emailSignUpBtn").addEventListener("click", async () => {
+      clearAuthError();
+      const email = document.getElementById("authEmail").value.trim();
+      const pass = document.getElementById("authPassword").value;
+      if (!email || !pass) { showAuthError("Enter your email and password."); return; }
+      if (pass.length < 6) { showAuthError("Password must be at least 6 characters."); return; }
+      try { await authFns.createUserWithEmailAndPassword(fbAuth, email, pass); }
+      catch (e) { showAuthError(friendlyAuthError(e)); }
+    });
+
+    document.getElementById("signOutBtn").addEventListener("click", () => {
+      authFns.signOut(fbAuth);
+    });
+  }
+
+  async function handleAuthChange(user) {
+    fbUser = user;
+    const title = document.getElementById("accountStatusTitle");
+    const sub = document.getElementById("accountStatusSub");
+    const signOutBtn = document.getElementById("signOutBtn");
+    const signedOutBlock = document.getElementById("signedOutBlock");
+
+    if (user) {
+      title.textContent = user.displayName || user.email || "Signed in";
+      sub.textContent = "Your progress is synced to this account.";
+      signOutBtn.hidden = false;
+      signedOutBlock.hidden = true;
+      clearAuthError();
+      await pullFromCloud();
+      applyTheme(store.get("loop_theme", "light"));
+      recalcStreakOnLoad();
+      renderHome();
+      renderFacts();
+      renderTools();
+      renderStreakBadge();
+    } else {
+      title.textContent = "Not signed in";
+      sub.textContent = "Sign in to save your progress across devices.";
+      signOutBtn.hidden = true;
+      signedOutBlock.hidden = false;
+    }
+  }
+
+  async function initFirebase() {
+    try {
+      const [{ initializeApp }, authMod, fsMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js"),
+        import("https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js")
+      ]);
+      const app = initializeApp(FIREBASE_CONFIG);
+      fbAuth = authMod.getAuth(app);
+      fbDb = fsMod.getFirestore(app);
+      authFns = authMod;
+      fsFns = fsMod;
+      firebaseOK = true;
+      wireAuthUI();
+      authMod.onAuthStateChanged(fbAuth, handleAuthChange);
+    } catch (e) {
+      console.warn("Firebase unavailable:", e);
+      const note = document.getElementById("cloudSyncNote");
+      if (note) note.hidden = false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
      Boot
      --------------------------------------------------------------------- */
 
@@ -751,11 +1138,14 @@
     initTheme();
     initNav();
     initSettings();
+    recalcStreakOnLoad();
     renderHome();
     renderFacts();
     renderTools();
+    renderStreakBadge();
     tickClock();
     setInterval(tickClock, 1000);
+    initFirebase();
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
