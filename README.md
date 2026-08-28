@@ -1,49 +1,92 @@
-# Loop — Daily Facts & Challenges
+# Loop — Daily Facts & Challenges (v2.0)
 
-A tiny, installable daily-ritual app. One fact, one quote, and four quick
-challenges — all deterministic per calendar day, so everyone sees the same
-thing on the same day, and progress resets automatically at midnight.
-
-No backend, no build step, no dependencies — just static files.
+A tiny, installable daily-ritual app. One fact, one quote, seven quick
+challenges, a streak, badges — and optional cloud sync via Firebase.
 
 ## Files
 
-- `index.html` — markup for all four screens (Home, Facts, Tools, Settings)
-- `style.css` — design system (light/dark tokens, glass cards, layout)
-- `script.js` — content banks + app logic (dates, storage, tools)
-- `manifest.json` — PWA manifest (name, icons, theme colors)
-- `sw.js` — service worker (offline caching, required for installability)
-- `icons/` — app icons (192, 512, maskable, and the iOS touch icon)
+- `index.html` — markup for all four screens, plus the Account and
+  Stats & Badges panels
+- `style.css` — design system (light/dark tokens, per-tool colors, streak
+  and badge styling)
+- `script.js` — content banks, app logic, streak/badge logic, and the
+  Firebase auth + sync layer
+- `manifest.json` — PWA manifest
+- `sw.js` — service worker (offline caching)
+- `icons/` — app icons
 
-## Put it on GitHub Pages
+## What's new in v2.0
 
-1. Create a new GitHub repository and push all files in this folder to it
-   (keep them at the repository root, or update the paths if you nest them
-   in a subfolder).
-2. In the repo, go to **Settings → Pages**.
-3. Under **Source**, choose the branch (usually `main`) and folder (`/root`),
-   then save.
-4. GitHub gives you a URL like `https://yourname.github.io/your-repo/`.
-   That's it — no build step needed.
+- **3 new challenges:** Flags, Math Sprint, Roman Numerals (7 total)
+- **Daily streak:** goes up by 1 every day you complete all 7 challenges;
+  resets to 0 if you miss a full day
+- **Stats & badges:** current/longest streak, total completed, all your
+  PRs, and 7 unlockable achievement badges — open it by tapping the
+  streak pill on Home or "View" in Settings
+- **More color:** each tool now has its own soft accent color, the streak
+  uses a warm amber tone, and the "done" state is a livelier green — the
+  rest of the app stays quiet on purpose
+- **Sign in (Google or email/password) + cloud sync:** your theme,
+  streak, badges, and PRs sync to your account via Firebase, so they
+  follow you across devices. If you don't sign in, everything still works
+  exactly as before, just saved to this device only
+- **Fixed:** installing the app used to fail with "site can't be
+  reached" — the manifest's `start_url` pointed at `index.html`
+  directly, which some hosts redirect. It now points at `./`.
 
-PWA installability requires HTTPS, which GitHub Pages provides automatically.
+## Firebase — what's already done vs. what you still need to do
 
-## Installing it as an app
+Your config is already in `script.js`. Still to do, in the
+[Firebase console](https://console.firebase.google.com), project
+**loop-38c98**:
 
-- **Android / desktop Chrome/Edge:** open the site, then use the install
-  icon in the address bar, or open Settings inside the app and tap
-  **Install**.
-- **iPhone/iPad (Safari):** open the site, tap the **Share** icon, then
-  **Add to Home Screen**. iOS doesn't support an automatic install prompt,
-  so this manual step is required there.
+1. **Authentication → Sign-in method** — make sure both **Google** and
+   **Email/Password** are enabled.
+2. **Build → Firestore Database** — create the database if you haven't
+   yet (any region is fine; pick one close to you, e.g. `eur3`).
+3. **Firestore Database → Rules** — paste this in and publish, so people
+   can only ever read/write their own data:
 
-## Notes on the content
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{userId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+     }
+   }
+   ```
 
-- Facts, quotes, English words, and capital-city pairs are hard-coded
-  arrays in `script.js`. The day's pick is derived from the day-of-year, so
-  it's identical for every visitor on a given day and repeats once the
-  arrays cycle through. Add more entries to any array to extend the cycle.
-- The Facts tab only reveals the days of the current week up to today —
-  future days show a locked placeholder, by design.
-- Tool completions and personal records are stored in the browser's
-  `localStorage`, per device — nothing is sent anywhere.
+4. **Authentication → Settings → Authorized domains** — add
+   `thedailyloop.pages.dev`.
+
+Until Firestore/Auth are fully set up, the app degrades gracefully: the
+sign-in options just stay hidden and a small note says cloud sync isn't
+configured yet — nothing breaks.
+
+## Upload checklist (what to replace on GitHub)
+
+Every one of these files replaces the same-named file in your repo —
+upload them via **Add file → Upload files** and let GitHub overwrite the
+existing ones (see the step-by-step in chat if you need a refresher).
+
+| File | What changed |
+|---|---|
+| `index.html` | Added streak badge, Account section, Stats & Badges row |
+| `style.css` | Streak/badge styling, per-tool colors, `[hidden]` fix |
+| `script.js` | 3 new tools, streak logic, badges, Firebase auth + sync |
+| `manifest.json` | Fixed `start_url` (the install bug) |
+| `sw.js` | Bumped cache version so devices pick up the new files |
+| `icons/*.png` | Unchanged — no need to re-upload if already in `icons/` |
+
+## Notes
+
+- Facts, quotes, words, and country/flag/capital pairs are hard-coded
+  arrays in `script.js`, picked deterministically by day-of-year — same
+  for every visitor on a given day.
+- Tool completions, PRs, and streak data live in `localStorage`. When
+  signed in, that same data is mirrored to Firestore under
+  `users/{your-uid}` and pulled back down on sign-in from any device.
+- Reset progress (Settings → Data) clears streak, badges progress, and
+  PRs, and pushes the cleared state to the cloud too if you're signed in.
