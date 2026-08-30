@@ -138,10 +138,18 @@ h1, h2, p, span { margin: 0; }
   fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
   stroke-dasharray: 578; stroke-dashoffset: 578; transition: stroke-dashoffset 1s linear;
 }
+.day-ring-ticks line { stroke: var(--divider); stroke-width: 2; stroke-linecap: round; }
 
 .time-display {
-  position: absolute; font-family: var(--font-mono); font-size: 40px; font-weight: 500;
+  position: absolute; display: flex; align-items: baseline; justify-content: center;
+  font-family: var(--font-mono); font-size: 40px; font-weight: 500;
   letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+}
+.blink-colon { animation: blinkColon 1s steps(1, start) infinite; }
+@keyframes blinkColon { 50%, 100% { opacity: 0.15; } }
+.time-seconds {
+  font-size: 13px; font-weight: 500; color: var(--text-tertiary);
+  margin-left: 5px; align-self: flex-start; margin-top: 4px;
 }
 
 .date-label { margin-top: 16px; font-size: 13.5px; color: var(--text-secondary); letter-spacing: 0.02em; }
@@ -209,11 +217,11 @@ h1, h2, p, span { margin: 0; }
   -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
   border: 1px solid var(--surface-border); border-radius: var(--radius-md);
 }
-.fact-row.is-today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.fact-row.is-today { border-color: var(--streak-color); box-shadow: 0 0 0 1px var(--streak-color) inset; }
 .fact-row.is-locked { opacity: 0.55; }
 
 .fact-row-day { flex-shrink: 0; width: 46px; white-space: nowrap; font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); padding-top: 1px; }
-.fact-row.is-today .fact-row-day { color: var(--accent-strong); font-weight: 600; }
+.fact-row.is-today .fact-row-day { color: var(--streak-color); font-weight: 600; }
 .fact-row-body { flex: 1; }
 .fact-row-title { font-family: var(--font-display); font-size: 15.5px; font-weight: 600; margin-bottom: 3px; }
 .fact-row-text { font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
@@ -237,12 +245,8 @@ h1, h2, p, span { margin: 0; }
 .tool-icon {
   flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px;
   display: flex; align-items: center; justify-content: center;
-  background: hsl(var(--tool-hue, 220) 35% 91%);
-  color: hsl(var(--tool-hue, 220) 45% 38%);
-}
-[data-theme="dark"] .tool-icon {
-  background: hsl(var(--tool-hue, 220) 24% 21%);
-  color: hsl(var(--tool-hue, 220) 60% 74%);
+  background: var(--accent-tint);
+  color: var(--accent-strong);
 }
 
 .tool-body { flex: 1; min-width: 0; }
@@ -390,7 +394,56 @@ h1, h2, p, span { margin: 0; }
 .pr-row:last-child { border-bottom: none; }
 
 .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.badge-item { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 14px 6px; border-radius: var(--radius-sm); background: var(--streak-tint); }
-.badge-item.locked { background: var(--accent-tint); opacity: 0.4; filter: grayscale(0.7); }
+.badge-item { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 14px 6px; border-radius: var(--radius-sm); background: var(--accent-tint); }
+.badge-item.unlocked { background: var(--streak-tint); }
+.badge-item.locked { opacity: 0.55; filter: grayscale(0.5); }
 .badge-emoji { font-size: 22px; }
 .badge-name { font-size: 10.5px; font-weight: 600; line-height: 1.3; color: var(--text-primary); }
+.badge-progress { font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary); }
+.badge-item.unlocked .badge-progress { color: var(--streak-color); font-weight: 700; }
+
+/* ---- Streak calendar (heatmap) ---- */
+
+.heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.heatmap-cell { aspect-ratio: 1; border-radius: 4px; background: var(--divider); }
+.heatmap-cell.done { background: var(--streak-color); }
+.heatmap-cell.is-today { box-shadow: 0 0 0 1.5px var(--accent) inset; }
+
+/* ---- Badge unlock toast ---- */
+
+.badge-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 100px;
+  transform: translate(-50%, 16px);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 12px 14px;
+  border-radius: 100px;
+  background: var(--surface-solid);
+  border: 1px solid var(--surface-border);
+  box-shadow: 0 12px 32px -10px rgba(0,0,0,0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease;
+  max-width: calc(100% - 40px);
+}
+.badge-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.badge-toast-emoji { font-size: 22px; flex-shrink: 0; }
+.badge-toast-text { display: flex; flex-direction: column; gap: 1px; text-align: left; }
+.badge-toast-title { font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--streak-color); }
+.badge-toast-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+
+/* ---- Confetti ---- */
+
+.confetti-layer { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
+.confetti-piece {
+  position: absolute; top: -12px; width: 7px; height: 12px; border-radius: 2px; opacity: 0.9;
+  animation: confettiFall 2.2s ease-in forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(115vh) translateX(calc(var(--drift, 0) * 70px)) rotate(560deg); opacity: 0; }
+}
