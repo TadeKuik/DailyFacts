@@ -296,9 +296,22 @@
     const last = store.get("loop_streak_last_date", null);
     if (!last) return;
     if (last !== todayKey && last !== yesterdayKey()) {
+      const wasActive = store.get("loop_streak_current", 0) > 0;
       store.set("loop_streak_current", 0);
+      if (wasActive) store.set("loop_streak_ever_reset", true);
     }
   }
+
+  function recordCompletedDay(dateStr) {
+    const hist = store.get("loop_completed_dates", []);
+    if (!hist.includes(dateStr)) {
+      hist.push(dateStr);
+      while (hist.length > 120) hist.shift();
+      store.set("loop_completed_dates", hist);
+    }
+  }
+
+  const STREAK_MILESTONES = [7, 30, 100];
 
   function maybeBumpStreak() {
     const allDone = TOOL_DEFS.every(t => isDoneToday(t.id));
@@ -310,7 +323,9 @@
     store.set("loop_streak_last_date", todayKey);
     const longest = store.get("loop_streak_longest", 0);
     if (current > longest) store.set("loop_streak_longest", current);
+    recordCompletedDay(todayKey);
     renderStreakBadge();
+    if (STREAK_MILESTONES.includes(current)) fireConfetti();
   }
 
   function renderStreakBadge() {
@@ -323,8 +338,30 @@
     store.set(`loop_done_${toolId}`, todayKey);
     if (!wasDone) {
       store.set("loop_total_completed", store.get("loop_total_completed", 0) + 1);
+      store.set(`loop_count_${toolId}`, store.get(`loop_count_${toolId}`, 0) + 1);
     }
     maybeBumpStreak();
+    checkBadges();
+  }
+
+  /* ---------------------------------------------------------------------
+     Confetti — small celebratory burst on streak milestones
+     --------------------------------------------------------------------- */
+
+  function fireConfetti() {
+    const layer = document.getElementById("confettiLayer");
+    if (!layer) return;
+    const colors = ["#C97A3D", "#6B7686", "#3F8F5F", "#8A6B8F", "#4B5563", "#B0564A"];
+    for (let i = 0; i < 28; i++) {
+      const el = document.createElement("span");
+      el.className = "confetti-piece";
+      el.style.left = (Math.random() * 100).toFixed(1) + "%";
+      el.style.background = colors[i % colors.length];
+      el.style.animationDelay = (Math.random() * 0.35).toFixed(2) + "s";
+      el.style.setProperty("--drift", (Math.random() * 2 - 1).toFixed(2));
+      layer.appendChild(el);
+      setTimeout(() => el.remove(), 2700);
+    }
   }
 
   /* ---------------------------------------------------------------------
@@ -380,7 +417,10 @@
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String(now.getMinutes()).padStart(2, "0");
-    document.getElementById("liveTime").textContent = `${hh}:${mm}`;
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    document.getElementById("liveHours").textContent = hh;
+    document.getElementById("liveMinutes").textContent = mm;
+    document.getElementById("liveSeconds").textContent = ss;
 
     const secondsIntoDay = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
     const fraction = secondsIntoDay / 86400;
@@ -478,13 +518,13 @@
   }
 
   const TOOL_DEFS = [
-    { id: "word", title: "English", sub: "Learn one tricky word a day", icon: iconBook, timed: false, hue: 215 },
-    { id: "clock", title: "Analog Clock", sub: "Read the hands, type the time", icon: iconClock, timed: true, hue: 178 },
-    { id: "month", title: "Months", sub: "Number to month, as fast as you can", icon: iconCalendar, timed: true, hue: 288 },
-    { id: "capital", title: "Capitals", sub: "Country to capital city", icon: iconGlobe, timed: true, hue: 28 },
-    { id: "flag", title: "Flags", sub: "Flag to country name", icon: iconFlag, timed: true, hue: 6 },
-    { id: "math", title: "Math Sprint", sub: "Solve it as fast as you can", icon: iconMath, timed: true, hue: 40 },
-    { id: "roman", title: "Roman Numerals", sub: "Numeral to number", icon: iconRoman, timed: true, hue: 250 }
+    { id: "word", title: "English", sub: "Learn one tricky word a day", icon: iconBook, timed: false },
+    { id: "clock", title: "Analog Clock", sub: "Read the hands, type the time", icon: iconClock, timed: true },
+    { id: "month", title: "Months", sub: "Number to month, as fast as you can", icon: iconCalendar, timed: true },
+    { id: "capital", title: "Capitals", sub: "Country to capital city", icon: iconGlobe, timed: true },
+    { id: "flag", title: "Flags", sub: "Flag to country name", icon: iconFlag, timed: true },
+    { id: "math", title: "Math Sprint", sub: "Solve it as fast as you can", icon: iconMath, timed: true },
+    { id: "roman", title: "Roman Numerals", sub: "Numeral to number", icon: iconRoman, timed: true }
   ];
 
   function renderTools() {
@@ -496,7 +536,6 @@
       const row = document.createElement("button");
       row.className = "tool-row";
       row.type = "button";
-      row.style.setProperty("--tool-hue", def.hue);
       const statusHtml = done
         ? `<span class="tool-status done">Done ✓</span>`
         : `<span class="tool-status pending">New</span>`;
@@ -823,6 +862,7 @@
   function finishTimedTool(id, correct, elapsedMs, correctAnswerLabel) {
     markDoneToday(id);
     const isNewPR = correct ? setPRIfBetter(id, elapsedMs) : false;
+    checkBadges();
     const pr = getPR(id);
 
     openOverlay(`
@@ -856,35 +896,109 @@
      --------------------------------------------------------------------- */
 
   const BADGES = [
-    { id: "first", emoji: "🌱", name: "First Steps", desc: "Complete your first challenge", check: s => s.total >= 1 },
-    { id: "week", emoji: "🔥", name: "Week Warrior", desc: "Reach a 7-day streak", check: s => s.longest >= 7 },
-    { id: "month", emoji: "🏆", name: "Habit Formed", desc: "Reach a 30-day streak", check: s => s.longest >= 30 },
-    { id: "century", emoji: "💯", name: "Centurion", desc: "Reach a 100-day streak", check: s => s.longest >= 100 },
-    { id: "quarter", emoji: "⭐", name: "Quarter Century", desc: "Complete 25 challenges total", check: s => s.total >= 25 },
-    { id: "hundred", emoji: "🎖️", name: "Century Club", desc: "Complete 100 challenges total", check: s => s.total >= 100 },
-    { id: "fast", emoji: "⚡", name: "Lightning Fast", desc: "Score a PR under 2 seconds", check: s => s.anyFastPR }
+    { id: "first", emoji: "🌱", name: "First Steps", desc: "Complete your first challenge", target: 1, current: s => s.total, check: s => s.total >= 1 },
+    { id: "week", emoji: "🔥", name: "Week Warrior", desc: "Reach a 7-day streak", target: 7, current: s => s.longest, check: s => s.longest >= 7 },
+    { id: "month", emoji: "🏆", name: "Habit Formed", desc: "Reach a 30-day streak", target: 30, current: s => s.longest, check: s => s.longest >= 30 },
+    { id: "century", emoji: "💯", name: "Centurion", desc: "Reach a 100-day streak", target: 100, current: s => s.longest, check: s => s.longest >= 100 },
+    { id: "quarter", emoji: "⭐", name: "Quarter Century", desc: "Complete 25 challenges total", target: 25, current: s => s.total, check: s => s.total >= 25 },
+    { id: "hundred", emoji: "🎖️", name: "Century Club", desc: "Complete 100 challenges total", target: 100, current: s => s.total, check: s => s.total >= 100 },
+    { id: "fast", emoji: "⚡", name: "Lightning Fast", desc: "Score a PR under 2 seconds", target: 1, current: s => s.anyFastPR ? 1 : 0, check: s => s.anyFastPR },
+    { id: "wordsmith", emoji: "🧠", name: "Wordsmith", desc: "Complete English 15 times", target: 15, current: s => s.counts.word || 0, check: s => (s.counts.word || 0) >= 15 },
+    { id: "timekeeper", emoji: "🕰️", name: "Timekeeper", desc: "Complete Analog Clock 15 times", target: 15, current: s => s.counts.clock || 0, check: s => (s.counts.clock || 0) >= 15 },
+    { id: "globetrotter", emoji: "🌍", name: "Globetrotter", desc: "Complete Capitals + Flags 20 times combined", target: 20, current: s => (s.counts.capital || 0) + (s.counts.flag || 0), check: s => ((s.counts.capital || 0) + (s.counts.flag || 0)) >= 20 },
+    { id: "cruncher", emoji: "🔢", name: "Number Cruncher", desc: "Complete Math Sprint + Roman Numerals 20 times combined", target: 20, current: s => (s.counts.math || 0) + (s.counts.roman || 0), check: s => ((s.counts.math || 0) + (s.counts.roman || 0)) >= 20 },
+    { id: "comeback", emoji: "💪", name: "Comeback Kid", desc: "Rebuild your streak to 3+ after it broke", target: 3, current: s => s.everReset ? Math.min(s.current, 3) : 0, check: s => s.current >= 3 && s.everReset }
   ];
 
   function computeStats() {
+    const counts = {};
+    TOOL_DEFS.forEach(t => { counts[t.id] = store.get(`loop_count_${t.id}`, 0); });
     return {
       current: store.get("loop_streak_current", 0),
       longest: store.get("loop_streak_longest", 0),
       total: store.get("loop_total_completed", 0),
-      anyFastPR: TOOL_DEFS.some(t => { const pr = getPR(t.id); return pr !== null && pr < 2000; })
+      everReset: store.get("loop_streak_ever_reset", false),
+      anyFastPR: TOOL_DEFS.some(t => { const pr = getPR(t.id); return pr !== null && pr < 2000; }),
+      counts
     };
+  }
+
+  function getUnlockedBadgeIds() {
+    return store.get("loop_badges_unlocked", []);
+  }
+
+  function checkBadges() {
+    const stats = computeStats();
+    const unlocked = new Set(getUnlockedBadgeIds());
+    const newly = [];
+    BADGES.forEach(b => {
+      if (!unlocked.has(b.id) && b.check(stats)) {
+        unlocked.add(b.id);
+        newly.push(b);
+      }
+    });
+    if (newly.length) {
+      store.set("loop_badges_unlocked", Array.from(unlocked));
+      newly.forEach(b => queueBadgeToast(b));
+    }
+  }
+
+  /* ---- Badge unlock toast ---- */
+
+  const badgeToastQueue = [];
+  let badgeToastShowing = false;
+
+  function queueBadgeToast(badge) {
+    badgeToastQueue.push(badge);
+    if (!badgeToastShowing) showNextBadgeToast();
+  }
+
+  function showNextBadgeToast() {
+    const badge = badgeToastQueue.shift();
+    if (!badge) { badgeToastShowing = false; return; }
+    badgeToastShowing = true;
+    const toast = document.getElementById("badgeToast");
+    toast.innerHTML = `
+      <span class="badge-toast-emoji">${badge.emoji}</span>
+      <span class="badge-toast-text">
+        <span class="badge-toast-title">New badge unlocked</span>
+        <span class="badge-toast-name">${badge.name}</span>
+      </span>`;
+    toast.classList.add("show");
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(showNextBadgeToast, 400);
+    }, 3200);
+  }
+
+  /* ---- Streak calendar (heatmap) ---- */
+
+  function buildHeatmap() {
+    const hist = store.get("loop_completed_dates", []);
+    const days = [];
+    for (let i = 34; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const key = dateKey(d);
+      days.push({ key, done: hist.includes(key), isToday: key === todayKey });
+    }
+    return days.map(d => `<div class="heatmap-cell ${d.done ? "done" : ""} ${d.isToday ? "is-today" : ""}" title="${d.key}"></div>`).join("");
   }
 
   function openStats() {
     const s = computeStats();
+    const unlockedIds = getUnlockedBadgeIds();
     const prRows = TOOL_DEFS.filter(t => t.timed).map(t => {
       const pr = getPR(t.id);
       return `<div class="pr-row"><span>${t.title}</span><span>${pr !== null ? formatMs(pr) : "—"}</span></div>`;
     }).join("");
     const badgeItems = BADGES.map(b => {
-      const unlocked = b.check(s);
-      return `<div class="badge-item ${unlocked ? "" : "locked"}" title="${b.desc}">
+      const unlocked = unlockedIds.includes(b.id);
+      const cur = Math.min(b.current(s), b.target);
+      const progressText = unlocked ? "Unlocked" : `${cur}/${b.target}`;
+      return `<div class="badge-item ${unlocked ? "unlocked" : "locked"}" title="${b.desc}">
         <span class="badge-emoji">${b.emoji}</span>
         <span class="badge-name">${b.name}</span>
+        <span class="badge-progress">${progressText}</span>
       </div>`;
     }).join("");
 
@@ -896,7 +1010,9 @@
         <div class="stats-metric"><div class="stats-metric-value">${s.longest}</div><div class="stats-metric-label">Longest streak</div></div>
         <div class="stats-metric"><div class="stats-metric-value">${s.total}</div><div class="stats-metric-label">Total completed</div></div>
       </div>
-      <span class="ov-block-label" style="display:block; margin-bottom:8px;">Personal records</span>
+      <span class="ov-block-label" style="display:block; margin-bottom:8px;">Last 5 weeks</span>
+      <div class="heatmap-grid">${buildHeatmap()}</div>
+      <span class="ov-block-label" style="display:block; margin:20px 0 8px;">Personal records</span>
       <div class="pr-list">${prRows}</div>
       <span class="ov-block-label" style="display:block; margin:20px 0 8px;">Badges</span>
       <div class="badges-grid">${badgeItems}</div>
@@ -927,11 +1043,15 @@
       TOOL_DEFS.forEach(def => {
         store.remove(`loop_done_${def.id}`);
         store.remove(`loop_pr_${def.id}`);
+        store.remove(`loop_count_${def.id}`);
       });
       store.remove("loop_streak_current");
       store.remove("loop_streak_longest");
       store.remove("loop_streak_last_date");
+      store.remove("loop_streak_ever_reset");
       store.remove("loop_total_completed");
+      store.remove("loop_completed_dates");
+      store.remove("loop_badges_unlocked");
       renderTools();
       renderHome();
       renderStreakBadge();
@@ -984,7 +1104,11 @@
   let fbAuth = null, fbDb = null, fbUser = null, firebaseOK = false;
   let authFns = {}, fsFns = {};
 
-  const SYNC_FIXED_KEYS = ["loop_theme", "loop_reminder", "loop_streak_current", "loop_streak_longest", "loop_streak_last_date", "loop_total_completed"];
+  const SYNC_FIXED_KEYS = [
+    "loop_theme", "loop_reminder",
+    "loop_streak_current", "loop_streak_longest", "loop_streak_last_date", "loop_streak_ever_reset",
+    "loop_total_completed", "loop_completed_dates", "loop_badges_unlocked"
+  ];
 
   function collectSyncData() {
     const data = {};
@@ -992,6 +1116,7 @@
     TOOL_DEFS.forEach(t => {
       data[`loop_done_${t.id}`] = store.get(`loop_done_${t.id}`, null);
       data[`loop_pr_${t.id}`] = store.get(`loop_pr_${t.id}`, null);
+      data[`loop_count_${t.id}`] = store.get(`loop_count_${t.id}`, null);
     });
     return data;
   }
@@ -1100,6 +1225,7 @@
       renderFacts();
       renderTools();
       renderStreakBadge();
+      checkBadges();
     } else {
       title.textContent = "Not signed in";
       sub.textContent = "Sign in to save your progress across devices.";
@@ -1143,6 +1269,7 @@
     renderFacts();
     renderTools();
     renderStreakBadge();
+    checkBadges();
     tickClock();
     setInterval(tickClock, 1000);
     initFirebase();
